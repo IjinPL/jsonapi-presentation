@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+
+<head>
+  <meta charset="utf-8">
+
+  <title>reveal.js - The HTML Presentation Framework</title>
+
+  <meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+  <meta name="author" content="Hakim El Hattab">
+
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+  <link rel="stylesheet" href="css/reveal.css">
+  <link rel="stylesheet" href="css/theme/beige.css" id="theme">
+  <link rel="stylesheet" href="css/custom.css">
+
+  <!-- Code syntax highlighting -->
+  <link rel="stylesheet" href="lib/css/rainbow.css">
+
+  <!--[if lt IE 9]>
+  <script src="lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+
+<body>
+
+<div class="reveal">
+
+  <!-- Any section element inside of this container is displayed as a slide -->
+  <div class="slides">
+    <section>
+      <img src="img/128px/circlecompass.png"/>
+
+      <h1>RFC-7159 PATCH</h1>
+      <h3>vnd.api+json</h3>
+
+      <p>
+        <small>Created by <a href="http://codefedonarts.se">Błażej Krysiak</a> / <a
+          href="http://twitter.com/codefedonarts">@codefedonarts</a></small>
+      </p>
+    </section>
+
+    <section>
+      <section>
+        <img src="img/128px/bolt.png"/>
+
+        <h2>
+          <span class="txt-blue">Re</span>presentational
+          <span class="txt-blue">S</span>tate
+          <span class="txt-blue">T</span>ransfer
+        </h2>
+        <blockquote>
+          "An architectural style that describes how a <span class="txt-blue">distributed hypermedia</span> system
+          works."
+        </blockquote>
+      </section>
+
+      <section>
+        <img src="img/128px/locked.png"/>
+
+        <h2>Interface constraints</h2>
+        <ol>
+          <li>Identification of resources <span class="txt-blue">- URI's</span></li>
+          <li>Manipulation of resources through representations <span class="txt-blue">- data</span></li>
+          <li>Self-descriptive messages <span class="txt-blue">- headers, MIME types, HTTP codes</span></li>
+          <li>Hypermedia as the engine of application state <span class="txt-blue">- links/refs</span></li>
+        </ol>
+      </section>
+    </section>
+
+    <section>
+      <h2>Sample Problem</h2>
+      <p>Show project's documents for current user</p>
+      <img src="img/diagram.png" class="diagram"/>
+    </section>
+
+    <section>
+      <section>
+        <img src="img/128px/bike.png"/>
+
+        <h2>Solution? JSON:API!</h2>
+
+        <p>A standard for building (distributed) APIs in JSON designed to minimize both the number of requests and the
+          amount of data transmitted between clients and servers.</p>
+      </section>
+
+      <section>
+        <h3>Top level structure</h3>
+        <ul>
+          <li>Root of every JSON API response is <span class="txt-blue">JSON object</span></li>
+          <li>Primary data must appear under a top-level key named
+            "<span class="txt-blue">data</span>" and  contain at least the following top-level members:
+            "<span class="txt-blue">id</span>" and "<span class="txt-blue">type</span>"
+          </li>
+        </ul>
+          <pre><code class="json" data-trim>
+// GET: /projects/1
+{
+  "data": {
+    "type": "project",
+    "id": 1,
+    "title": "Sample Project",
+    "description": "Very interesting description."
+  }
+}
+          </code></pre>
+
+          <p>Every request must contain addidtional headers:</p>
+          <pre><code class="http" data-trim>
+Content-Type: application/vnd.api+json
+Accept: application/vnd.api+json
+          </code></pre>
+
+      </section>
+      <section>
+        <h3>Additional top-level members:</h3>
+        <ul>
+          <li><span class="txt-blue">meta</span> - non-standard meta-information about the primary data.</li>
+          <li><span class="txt-blue">links</span> -  URLs/REF's related to the primary data.</li>
+          <li><span class="txt-blue">linked</span> - a list of linked resource objects to the primary data and/or each other.</li>
+        </ul>
+          <pre><code class="json" data-trim>
+// GET: /projects/1
+{
+  "data": {
+    // ...
+    "links": {
+      "documents": {
+        "type": "document",
+        "ids": [1,2,3,4]
+      },
+      "projectSummary": {
+        "id": 1,
+        "type": "projectSummary"
+      }
+    },
+    "linked": {
+      "projectSummary":{
+        "id": 1,
+        "type": "projectSummary"
+        // Other object properties
+      }
+    },
+    "meta": {
+      "limit": 25,
+      "offset": 0,
+      "total": 130
+    }
+  }
+}
+          </code></pre>
+      </section>
+
+      <section>
+        <h3>Relations with hypermedia</h3>
+        <p>Services often don't know about other resource location. To solve this problem, <span class="txt-blue">resource</span> and <span class="txt-blue">self</span>
+        keywords store URI references to linked resources.</p>
+          <pre><code class="json" data-trim>
+// ...
+{
+  "type": "projects",
+  "id": "1",
+  // ...
+  "links": {
+    "self": "http://example.com/articles/1",
+    "tasks": {
+      "self": "http://example.com/projects/1/tasks/9",
+      "resource": "http://example.com/tasks/9",
+      "type": "task",
+      "id": "9"
+    },
+    "projectSummary": {
+      "resource": "http://example.com/projects/1/project-summary"
+    }
+  }
+}
+// ...
+          </code></pre>
+      </section>
+
+      <section>
+        <h3>Inclusion of linked resources & fields projection</h3>
+          <pre><code class="json hljs" data-trim>
+ // GET: /projects/1?include=projectSummary
+ {
+ "data": {
+  /***/
+   "links": {
+     "projectSummary": {
+        "id": 1,
+       "type": "projectSummary"
+     }
+   },
+   "linked": {
+      "projectSummary":{
+      "id": 1,
+      "type": "projectSummary"
+      // Other object properties
+   }
+ }
+         </code></pre>
+        <pre><code class="json hljs" data-trim>
+ // GET: /projects/1?include=title
+ {
+ "data": {
+   "type": "projects",
+   "id": 1,
+   "title": "Sample Project"
+ }
+       </code></pre>
+      </section>
+
+      <section>
+        <h3>Sorting and filtering<span class="txt-red">*</span></h3>
+        <p>It is recommended that <span class="txt-blue">dot-separated</span> sort fields be used to request sorting based upon relationship attributes. </p>
+        <p>Support multiple sort fields by allowing <span class="txt-blue">comma-separated</span> sort fields.</p>
+          <pre><code class="http" data-trim>
+GET: /projects/?sort=+name,-description,+custom.nested
+We use: /projects/?sort[name]=asc&sort[description]=desc&sort[custom][nested]=asc
+          </code></pre>
+
+        <p>The <span class="txt-blue">"filter"</span> query parameter is reserved for filtering data. </p>
+          <pre><code class="http" data-trim>
+ GET: /projects/?filter[name]=Sth&filter[description]=Desc
+          </code></pre>
+
+        <small class="txt-red">* Recommended</small>
+      </section>
+
+      <section>
+        <h3>Updating the relations</h3>
+        <p>Related objects can be updated alog with resource object's data:</p>
+          <pre><code class="http" data-trim>
+// PUT /projects/1
+{
+  "data": {
+    "type": "project",
+    "id": 1,
+    "title": "Sample New Project",
+    "description": "Very interesting new description."
+    "links": {
+      "documents": { "type": "document", "ids": [2, 4, 5] }
+    }
+  }
+}
+          </code></pre>
+          <p>Or separately:</p>
+          <pre><code class="http" data-trim>
+// PUT /projects/1/documents
+{
+  "data": { "type": "document", "ids": [2, 4, 5] }
+}
+        </code></pre>
+<p>On update server can return <span class="txt-blue">Error 403 - Forbidden</span> when constraintes aren't met.</p>
+        <small class="txt-red">POST, PATCH, OPTIONS and DELETE stay exactly the way you expect them.</small>
+      </section>
+    </section>
+
+  <section>
+      <section>
+
+        <img src="img/128px/booklet.png"/>
+
+        <h2>Server and client support</h2>
+
+        <p><strong>JavaScript</strong> ember-data, backbone-jsonapi, backbone-relational, angular-restmod</p>
+        <p><strong>Node.js</strong> Fortune.js, json-api</p>
+        <p><strong>Ruby</strong> ActiveModel::Serializers, JSONAPI::Resources</p>
+        <p><strong>Python</strong> Django REST Framework JSON API </p>
+        <p><strong>.NET</strong> JSONAPI.NET </p>
+        <p><strong>PHP</strong> FriendsOfSymfony / FOSRestBundle</p>
+
+      </section>
+
+      <section>
+
+        <img src="img/128px/clipboard.png"/>
+
+        <h2>Angular implementation</h2>
+
+        <pre><code class="hljs hljs-comment" data-trim>
+app
+  // Definition of resources
+  .factory('Project', ['restmod'], function(restmod){
+    return restmod.model('service1/projects')
+        .mix('restmod.Preload','restmod.FindMany' {
+          documents: {
+            belongsToMany: 'Document'
+            keys: 'links.documents'
+        }
+        });
+  })
+
+  .factory('Document', ['restmod'], function(restmod){
+    return restmod.model('service2/documents').mix('restmod.Preload');
+  })
+
+  .controller('ProjectController', ['$scope', '$rootScope', 'Project'], function($scope, $rootScope, Project){
+    $scope.projects = Project.$collection
+    // GET service1/projects/
+    .$fetch()
+    // GET service2/documents/{documentId},{documentId2},{documentId3}?filter[owner]={userID}
+    .$preload('documents', params: { filter: { owner: $rootScope.user.id }});
+  });
+        </code></pre>
+
+      </section>
+  </section>
+
+  <section>
+    <img src="img/128px/crossroads.png"/>
+    <h2>Other tools for building APIs in JSON</h2>
+
+    <ol>
+      <li>HATEOAS/HAL (comes with Spring Data)</li>
+      <li>JSON Schema</li>
+    </ol>
+  </section>
+
+    <section>
+      <h1>Sankyou szoguny!</h1>
+      <img src="img/sushi.jpg" style="height: 400px"/>
+    </section>
+
+  </div>
+</div>
+
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.js"></script>
+
+<script>
+
+  // Full list of configuration options available at:
+  // https://github.com/hakimel/reveal.js#configuration
+  Reveal.initialize({
+    controls: true,
+    progress: true,
+    history: true,
+    center: true,
+
+    transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+    // Optional reveal.js plugins
+    dependencies: [
+      {
+        src: 'lib/js/classList.js', condition: function () {
+        return !document.body.classList;
+      }
+      },
+      {
+        src: 'plugin/highlight/highlight.js', async: true, condition: function () {
+        return !!document.querySelector('pre code');
+      }, callback: function () {
+        hljs.initHighlightingOnLoad();
+      }
+      },
+      {src: 'plugin/zoom-js/zoom.js', async: true},
+      {src: 'plugin/notes/notes.js', async: true}
+    ]
+  });
+
+</script>
+
+</body>
+</html>

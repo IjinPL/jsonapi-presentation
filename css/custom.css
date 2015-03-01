@@ -1,0 +1,60 @@
+
+body {
+  background: #e8d59c;
+  background: -moz-radial-gradient(center, circle cover, #ffffff 0%, #e8d59c 100%);
+  background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%, #ffffff), color-stop(100%, #e8d59c));
+  background: -webkit-radial-gradient(center, circle cover, #ffffff 0%, #d5c290 100%);
+  background: -o-radial-gradient(center, circle cover, #ffffff 0%, #e8d59c 100%);
+  background: -ms-radial-gradient(center, circle cover, #ffffff 0%, #e8d59c 100%);
+  background: radial-gradient(circle cover, #ffffff 0%, #e8d59c 100%);
+  background-color: #e8d59c;
+}
+
+.reveal {
+  font-size: 24px;
+}
+
+
+.reveal section img {
+  margin: 15px 0;
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
+
+.reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+  color: #51483D;
+}
+
+.txt-blue {
+  color: #4f5d73;
+}
+
+.txt-red{
+  color: #710909;
+}
+
+.reveal blockquote {
+  background: transparent;
+  box-shadow: none;
+}
+
+.reveal ol {
+  counter-reset: item
+}
+
+.reveal ol li {
+  display: block
+}
+
+.reveal ol li:before {
+  content: counter(item) ". ";
+  counter-increment: item;
+  font-family: "Consolas", "Menlo", "Courier", monospace;
+}
+
+.reveal img.diagram {
+  display: block;
+  margin: 0 auto;
+  height: 500px;
+}
